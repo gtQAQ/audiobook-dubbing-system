@@ -20,8 +20,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# 挂载输出目录 (保留 /voice_output 路径以兼容前端，或者更新为 /output)
-# 由于前端逻辑/数据库可能使用 /voice_output，我们保留 URL 路径但映射到新目录。
+# 挂载输出目录 (用于访问生成的音频文件)
 app.mount("/output", StaticFiles(directory=OUTPUT_DIR), name="output")
 app.mount("/voice", StaticFiles(directory=VOICE_DIR), name="voice")
 

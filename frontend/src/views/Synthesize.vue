@@ -120,7 +120,7 @@ const synthesize = async () => {
 }
 
 const saveAudio = async () => {
-  // 将合成的临时音频保存到数据库和持久化存储。
+  // 将 /output/temp 下的合成音频提交为持久记录，并创建数据库记录。
   saving.value = true
   try {
     const formData = new FormData()

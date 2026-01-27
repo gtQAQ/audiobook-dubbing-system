@@ -59,7 +59,7 @@ def synthesize_audio(text: str, emo_type: int) -> str:
 			api_name="/gen_single"
         )
 
-        # 兼容处理：如果返回的是字典（新版 gradio_client），则从常见字段中提取文件路径
+        # 兼容处理：如果返回的是字典（部分 gradio_client 版本），则依次从 name/path/value 提取文件路径
         if isinstance(result_path, dict):
             result_path = result_path.get('name') or result_path.get('path') or result_path.get('value')
 
@@ -67,7 +67,7 @@ def synthesize_audio(text: str, emo_type: int) -> str:
              print("TTS Service Error: Invalid result path")
              return None
         
-        # 结果是一个临时文件路径。将其移动到输出目录。
+        # 结果是一个临时文件路径。将其复制到输出目录。
         if not os.path.exists(TEMP_DIR):
             os.makedirs(TEMP_DIR)
             

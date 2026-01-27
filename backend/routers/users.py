@@ -101,8 +101,6 @@ async def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session
     db_user = get_user_or_404(db, user_id)
 
     apply_user_update(db_user, user_update)
-    # 管理员也可以更新角色（如果我们将其添加到 schema 中），但目前 UserUpdate schema 没有角色字段。
-    # 我们暂时只更新基本信息。
     
     db.commit()
     db.refresh(db_user)

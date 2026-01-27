@@ -12,7 +12,8 @@ def resolve_output_path_to_abs_path(path_or_url: str) -> str:
     将音频路径统一解析为磁盘绝对路径。
     
     说明：
-    - 兼容多种输入形式：/output/...、包含 /output/... 的路径片段、以及旧版 ../output/... 相对路径。
+    - 推荐输入：以 /output/... 开头的 URL 路径（后端返回/数据库存储的标准格式）。
+    - 兼容输入：允许字符串中包含 /output/... 片段，以及旧版 ../output/... 
     - 该函数仅负责“解析”，不负责鉴权与目录边界校验；调用方需自行做白名单目录校验。
     """
     if not path_or_url:
@@ -29,13 +30,13 @@ def resolve_output_path_to_abs_path(path_or_url: str) -> str:
 
     output_index = candidate.find("/output/")
     if output_index != -1:
-        # 兼容情况：字符串中包含 /output/... 片段（例如被拼接成了相对路径或带了前缀）
+        # 兼容情况：字符串中包含 /output/... 片段
         relative = candidate[output_index + 1 :].lstrip("/")
         return os.path.abspath(os.path.join(PROJECT_ROOT, *relative.split("/")))
 
     candidate = candidate.lstrip("./")
     if candidate.startswith("../"):
-        # 兼容旧版：../output/... 这种基于项目根目录的相对路径
+        # 兼容情况：../output/... 这种基于项目根目录的相对路径
         return os.path.abspath(os.path.join(PROJECT_ROOT, *candidate.lstrip("./").split("/")))
 
     # 兜底：当作相对项目根目录的路径处理
@@ -51,7 +52,7 @@ async def upload_text(file: UploadFile = File(...), current_user: models.User = 
         raise HTTPException(status_code=400, detail="Only .txt files are allowed")
     
     content = await file.read()
-    # 假设是 utf-8 
+    # 优先按 utf-8 解码，失败则回退到 gbk
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:

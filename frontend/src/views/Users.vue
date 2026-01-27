@@ -203,10 +203,7 @@ const submitUser = async () => {
   
   // 仅在创建模式下验证密码
   if (isEditMode.value) {
-     // 暂时移除密码验证规则或忽略
-     // 实际上 Element Plus 基于 rules 属性进行验证。
-     // 如果是编辑模式，我们可以将密码设置为虚拟值？
-     // 或者更好的是，使规则变为条件性的。
+    
   }
 
   await userFormRef.value.validate(async (valid) => {
@@ -215,7 +212,7 @@ const submitUser = async () => {
       try {
         const token = localStorage.getItem('access_token')
         if (isEditMode.value) {
-          // 编辑用户 - 调用更新接口 (假设后端支持 PUT /users/{id})
+          // 编辑用户 - 调用管理员更新用户接口 PUT /users/{id}
           await axios.put(`/users/${userForm.id}`, userForm, {
              headers: { Authorization: `Bearer ${token}` }
           })

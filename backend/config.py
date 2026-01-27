@@ -12,7 +12,7 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output")
 TEMP_DIR = os.path.join(OUTPUT_DIR, "temp")
 DATA_DIR = os.path.join(OUTPUT_DIR, "data")
 
-# 数据库路径 (保留在 backend 目录还是根目录？目前既然移动了就保留在 backend 目录)
+# 数据库路径 (存储在 backend 目录下)
 DATABASE_PATH = os.path.join(BASE_DIR, "sql_app.db")
 
 # 前端构建输出路径
