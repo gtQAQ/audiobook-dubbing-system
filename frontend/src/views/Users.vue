@@ -13,7 +13,6 @@
         placeholder="请输入用户名或手机号搜索"
         clearable
         prefix-icon="Search"
-        @input="handleSearch"
       />
     </div>
     
@@ -94,7 +93,6 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
 
 const tableData = ref([])
 const loading = ref(false)

@@ -1,11 +1,45 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
 import models, schemas, database, auth, tts_service
-from config import BASE_DIR, DATA_DIR
-import shutil, os, uuid
+from config import DATA_DIR, OUTPUT_DIR, PROJECT_ROOT, TEMP_DIR
+import shutil, os
 
 router = APIRouter(prefix="/audio", tags=["Audio"])
+
+def resolve_output_path_to_abs_path(path_or_url: str) -> str:
+    """
+    将音频路径统一解析为磁盘绝对路径。
+    
+    说明：
+    - 兼容多种输入形式：/output/...、包含 /output/... 的路径片段、以及旧版 ../output/... 相对路径。
+    - 该函数仅负责“解析”，不负责鉴权与目录边界校验；调用方需自行做白名单目录校验。
+    """
+    if not path_or_url:
+        # 空值直接返回空字符串，便于上层做统一错误处理
+        return ""
+
+    # 统一路径分隔符，避免 Windows 反斜杠导致解析逻辑失效
+    candidate = path_or_url.replace("\\", "/").strip()
+
+    if candidate.startswith("/output/"):
+        # 标准情况：前端/数据库存的是 /output/... 形式的 URL 路径
+        relative = candidate[len("/output/"):].lstrip("/")
+        return os.path.abspath(os.path.join(OUTPUT_DIR, *relative.split("/")))
+
+    output_index = candidate.find("/output/")
+    if output_index != -1:
+        # 兼容情况：字符串中包含 /output/... 片段（例如被拼接成了相对路径或带了前缀）
+        relative = candidate[output_index + 1 :].lstrip("/")
+        return os.path.abspath(os.path.join(PROJECT_ROOT, *relative.split("/")))
+
+    candidate = candidate.lstrip("./")
+    if candidate.startswith("../"):
+        # 兼容旧版：../output/... 这种基于项目根目录的相对路径
+        return os.path.abspath(os.path.join(PROJECT_ROOT, *candidate.lstrip("./").split("/")))
+
+    # 兜底：当作相对项目根目录的路径处理
+    return os.path.abspath(os.path.join(PROJECT_ROOT, *candidate.split("/")))
 
 @router.post("/upload_text")
 async def upload_text(file: UploadFile = File(...), current_user: models.User = Depends(auth.get_current_active_user)):
@@ -45,15 +79,16 @@ async def save_audio(emo_type: int = Form(...), audio_path: str = Form(...), db:
     """
     将生成的临时音频文件保存到持久化存储目录，并在数据库中创建记录。
     """
-    # 1. 解析源路径 (临时文件)
-    # 前端传来的 audio_path 是相对路径，例如 "..\output\temp\xxx.wav" 或 "output\temp\xxx.wav"
-    # 我们需要将其转换为绝对路径才能找到它。
-    
-    # 尝试先相对于 BASE_DIR 解析
-    src_abs_path = os.path.abspath(os.path.join(BASE_DIR, audio_path))
+    # 将前端传入的音频路径解析为磁盘绝对路径，确保后端能定位到实际文件
+    src_abs_path = resolve_output_path_to_abs_path(audio_path)
     
     if not os.path.exists(src_abs_path):
          raise HTTPException(status_code=404, detail="Audio file not found")
+
+    temp_dir_abs = os.path.abspath(TEMP_DIR)
+    if os.path.commonpath([src_abs_path, temp_dir_abs]) != temp_dir_abs:
+        # 限制只能保存临时目录下的音频，避免路径穿越导致任意文件被复制到公开目录
+        raise HTTPException(status_code=400, detail="Invalid audio path")
     
     # 2. 定义目标路径 (数据文件)
     filename = os.path.basename(src_abs_path)
@@ -65,12 +100,9 @@ async def save_audio(emo_type: int = Form(...), audio_path: str = Form(...), db:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save audio file: {e}")
         
-    # 4. 为数据库生成新的相对路径
-    new_rel_path = os.path.relpath(dst_abs_path, BASE_DIR).replace("\\", "/")
-
     db_audio = models.Audio(
         user_id=current_user.id,
-        audio_path=new_rel_path,
+        audio_path=f"/output/data/{filename}",
         emo_type=emo_type
     )
     db.add(db_audio)
@@ -96,11 +128,16 @@ async def delete_audio(audio_id: int, db: Session = Depends(database.get_db), cu
     if audio.user_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # 删除文件 (如果存在)
-    if os.path.exists(audio.audio_path):
+    audio_abs_path = resolve_output_path_to_abs_path(audio.audio_path)
+    output_dir_abs = os.path.abspath(OUTPUT_DIR)
+    if (
+        audio_abs_path
+        and os.path.commonpath([audio_abs_path, output_dir_abs]) == output_dir_abs
+        and os.path.exists(audio_abs_path)
+    ):
         try:
-            os.remove(audio.audio_path)
-        except:
+            os.remove(audio_abs_path)
+        except Exception:
             pass
             
     db.delete(audio)

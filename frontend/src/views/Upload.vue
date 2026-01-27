@@ -63,7 +63,6 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const content = ref('')
-const filename = ref('')
 
 const headers = computed(() => ({
   Authorization: `Bearer ${localStorage.getItem('access_token')}`
@@ -85,7 +84,6 @@ const beforeUpload = (file) => {
 const handleSuccess = (response) => {
   // 上传成功回调：更新内容和文件名显示。
   content.value = response.content
-  filename.value = response.filename
   ElMessage.success('上传解析成功')
 }
 

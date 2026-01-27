@@ -11,7 +11,7 @@ export default defineConfig({
       '/users': 'http://127.0.0.1:8000',
       '/audio': 'http://127.0.0.1:8000',
       '/voice': 'http://127.0.0.1:8000',
-      '/voice_output': 'http://127.0.0.1:8000',
+      '/output': 'http://127.0.0.1:8000',
     }
   }
 })

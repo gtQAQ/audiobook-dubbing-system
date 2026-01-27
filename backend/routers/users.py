@@ -5,6 +5,34 @@ import models, schemas, database, auth
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+def ensure_admin(current_user: models.User) -> None:
+    """
+    校验当前用户是否为管理员。
+    非管理员直接抛出 403，供各管理员接口复用。
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+def get_user_or_404(db: Session, user_id: int) -> models.User:
+    """
+    根据用户 ID 查询用户，不存在则抛出 404。
+    用于管理员相关接口，减少重复查询与重复的 404 处理。
+    """
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+def apply_user_update(target_user: models.User, user_update: schemas.UserUpdate) -> None:
+    """
+    将用户更新请求中的字段写入到目标用户对象。
+    统一更新字段集，避免多处接口各自维护同一套赋值逻辑。
+    """
+    target_user.nickname = user_update.nickname
+    target_user.phone = user_update.phone
+    target_user.email = user_update.email
+    target_user.gender = user_update.gender
+
 @router.get("/me", response_model=schemas.User)
 async def read_users_me(current_user: models.User = Depends(auth.get_current_active_user)):
     """
@@ -17,11 +45,7 @@ async def update_user_me(user_update: schemas.UserUpdate, current_user: models.U
     """
     更新当前登录用户的个人信息。
     """
-    # 更新允许的字段
-    current_user.nickname = user_update.nickname
-    current_user.phone = user_update.phone
-    current_user.email = user_update.email
-    current_user.gender = user_update.gender
+    apply_user_update(current_user, user_update)
     db.commit()
     db.refresh(current_user)
     return current_user
@@ -43,8 +67,7 @@ async def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(data
     """
     管理员接口：获取所有用户列表。
     """
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
+    ensure_admin(current_user)
     users = db.query(models.User).offset(skip).limit(limit).all()
     return users
 
@@ -53,22 +76,16 @@ async def delete_user(user_id: int, db: Session = Depends(database.get_db), curr
     """
     管理员接口：删除指定用户。
     """
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    ensure_admin(current_user)
+    user = get_user_or_404(db, user_id)
     db.delete(user)
     db.commit()
     return {"message": "User deleted"}
 
 @router.post("/{user_id}/reset_password")
 async def reset_password(user_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_active_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    ensure_admin(current_user)
+    user = get_user_or_404(db, user_id)
     # 重置为 123456
     user.password = auth.get_password_hash("123456")
     db.commit()
@@ -79,17 +96,11 @@ async def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session
     """
     管理员接口：更新指定用户的信息。
     """
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
+    ensure_admin(current_user)
     
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    db_user = get_user_or_404(db, user_id)
 
-    db_user.nickname = user_update.nickname
-    db_user.phone = user_update.phone
-    db_user.email = user_update.email
-    db_user.gender = user_update.gender
+    apply_user_update(db_user, user_update)
     # 管理员也可以更新角色（如果我们将其添加到 schema 中），但目前 UserUpdate schema 没有角色字段。
     # 我们暂时只更新基本信息。
     

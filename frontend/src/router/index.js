@@ -50,7 +50,7 @@ const router = createRouter({
 })
 
 // 全局路由守卫：检查用户是否登录，未登录则跳转至登录页。
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('access_token')
   if (to.name !== 'Login' && !token) {
     next({ name: 'Login' })

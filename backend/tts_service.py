@@ -2,7 +2,7 @@ from gradio_client import Client, handle_file
 import os
 import shutil
 import uuid
-from config import VOICE_DIR, OUTPUT_DIR, BASE_DIR, TEMP_DIR
+from config import VOICE_DIR, TEMP_DIR
 
 # 定义参考音频映射
 EMO_MAP = {
@@ -17,7 +17,7 @@ TTS_URL = "http://localhost:7860/"
 def synthesize_audio(text: str, emo_type: int) -> str:
     """
     使用本地 IndexTTS2 合成音频。
-    返回生成的音频文件路径 (相对于项目根目录)。
+    返回生成的音频文件 URL 路径（以 /output/... 开头），用于前端直接访问。
     """
     try:
         # 解析参考音频路径
@@ -59,7 +59,7 @@ def synthesize_audio(text: str, emo_type: int) -> str:
 			api_name="/gen_single"
         )
 
-        # 兼容处理：如果返回的是字典（新版 gradio_client），则提取文件路径
+        # 兼容处理：如果返回的是字典（新版 gradio_client），则从常见字段中提取文件路径
         if isinstance(result_path, dict):
             result_path = result_path.get('name') or result_path.get('path') or result_path.get('value')
 
@@ -76,9 +76,8 @@ def synthesize_audio(text: str, emo_type: int) -> str:
         
         shutil.copy(result_path, output_path)
         
-        # 返回前端使用的相对路径
-        rel_path = os.path.relpath(output_path, BASE_DIR)
-        return rel_path.replace("\\", "/")
+        # 返回统一的可访问 URL 路径，前端可直接作为 <audio src> 使用
+        return f"/output/temp/{filename}"
 
     except Exception as e:
         print(f"TTS Service Error: {e}")

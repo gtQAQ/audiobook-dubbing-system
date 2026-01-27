@@ -67,7 +67,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
@@ -79,7 +79,6 @@ const form = reactive({
 const loading = ref(false)
 const saving = ref(false)
 const audioPath = ref('')
-const route = useRoute()
 const router = useRouter()
 
 const audioUrl = computed(() => {
