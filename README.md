@@ -70,20 +70,7 @@ node --version
 npm --version
 ```
 
-### 3. 后端配置
-
-创建独立的 Python 虚拟环境并安装依赖。
-
-```powershell
-# 1. 创建名为 venv 的虚拟环境
-python -m venv venv
-
-# 2. 安装后端依赖
-# 注意：直接调用虚拟环境下的 pip，无需显式激活环境
-.\venv\Scripts\pip install -r backend\requirements.txt
-```
-
-### 4. 前端构建
+### 3. 前端构建
 
 进入前端目录，安装依赖并编译生成静态文件。
 
@@ -99,6 +86,19 @@ npm run build
 
 # 4. 返回项目根目录
 cd ..
+```
+
+### 4. 后端配置
+
+创建独立的 Python 虚拟环境并安装依赖。
+
+```powershell
+# 1. 创建名为 venv 的虚拟环境
+python -m venv venv
+
+# 2. 安装后端依赖
+# 注意：直接调用虚拟环境下的 pip，无需显式激活环境
+.\venv\Scripts\pip install -r backend\requirements.txt
 ```
 
 ### 5. 启动服务
