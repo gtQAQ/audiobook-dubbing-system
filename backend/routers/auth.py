@@ -16,7 +16,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     if not user or not auth.verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="用户名或密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -33,10 +33,10 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
     """
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="用户名已被注册")
     hashed_password = auth.get_password_hash(user.password)
-    # 默认第一个用户是管理员？还是普通用户。
-    # 为了简单起见，如果用户名是 "admin"，则设为 "admin" 角色。
+ 
+    # 如果用户名是 "admin"，则设为 "admin" 角色。
     role = "admin" if user.username == "admin" else "user"
     db_user = models.User(
         username=user.username,

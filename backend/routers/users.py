@@ -11,7 +11,7 @@ def ensure_admin(current_user: models.User) -> None:
     非管理员直接抛出 403，供各管理员接口复用。
     """
     if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=403, detail="权限不足")
 
 def get_user_or_404(db: Session, user_id: int) -> models.User:
     """
@@ -20,7 +20,7 @@ def get_user_or_404(db: Session, user_id: int) -> models.User:
     """
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="用户不存在")
     return user
 
 def apply_user_update(target_user: models.User, user_update: schemas.UserUpdate) -> None:
@@ -56,10 +56,10 @@ async def update_password_me(old_password: str, new_password: str, current_user:
     修改当前登录用户的密码。
     """
     if not auth.verify_password(old_password, current_user.password):
-        raise HTTPException(status_code=400, detail="Incorrect old password")
+        raise HTTPException(status_code=400, detail="旧密码错误")
     current_user.password = auth.get_password_hash(new_password)
     db.commit()
-    return {"message": "Password updated successfully"}
+    return {"message": "密码修改成功"}
 
 # 管理员路由
 @router.get("/", response_model=List[schemas.User])
@@ -80,7 +80,7 @@ async def delete_user(user_id: int, db: Session = Depends(database.get_db), curr
     user = get_user_or_404(db, user_id)
     db.delete(user)
     db.commit()
-    return {"message": "User deleted"}
+    return {"message": "用户已删除"}
 
 @router.post("/{user_id}/reset_password")
 async def reset_password(user_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_active_user)):
@@ -89,7 +89,7 @@ async def reset_password(user_id: int, db: Session = Depends(database.get_db), c
     # 重置为 123456
     user.password = auth.get_password_hash("123456")
     db.commit()
-    return {"message": "Password reset to 123456"}
+    return {"message": "密码已重置为 123456"}
 
 @router.put("/{user_id}", response_model=schemas.User)
 async def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth.get_current_active_user)):

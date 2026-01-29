@@ -15,7 +15,9 @@
               <el-input v-model="infoForm.username" disabled />
             </el-form-item>
             <el-form-item label="角色">
-               <el-tag :type="infoForm.role === 'admin' ? 'danger' : 'info'">{{ infoForm.role }}</el-tag>
+               <el-tag :type="infoForm.role === 'admin' ? 'danger' : 'info'">
+                 {{ infoForm.role === 'admin' ? '管理员' : '普通用户' }}
+               </el-tag>
             </el-form-item>
             <el-form-item label="昵称" prop="nickname">
               <el-input v-model="infoForm.nickname" />
@@ -101,7 +103,7 @@ const fetchProfile = async () => {
     })
     Object.assign(infoForm, res.data)
   } catch (error) {
-    ElMessage.error('获取个人信息失败')
+    ElMessage.error(error.response?.data?.detail || '获取个人信息失败')
   }
 }
 
@@ -115,7 +117,7 @@ const updateProfile = async () => {
     })
     ElMessage.success('个人资料更新成功')
   } catch (error) {
-    ElMessage.error('更新失败')
+    ElMessage.error(error.response?.data?.detail || '更新失败')
   } finally {
     loading.value = false
   }

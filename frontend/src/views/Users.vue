@@ -23,7 +23,7 @@
       <el-table-column prop="role" label="角色">
         <template #default="scope">
           <el-tag :type="scope.row.role === 'admin' ? 'danger' : 'info'">
-            {{ scope.row.role }}
+            {{ scope.row.role === 'admin' ? '管理员' : '普通用户' }}
           </el-tag>
         </template>
       </el-table-column>
@@ -157,7 +157,7 @@ const handleDelete = async (row) => {
     ElMessage.success('删除成功')
     fetchData()
   } catch (error) {
-    ElMessage.error('删除失败')
+    ElMessage.error(error.response?.data?.detail || '删除失败')
   }
 }
 
@@ -170,7 +170,7 @@ const resetPassword = async (row) => {
     })
     ElMessage.success('重置成功')
   } catch (error) {
-    ElMessage.error('重置失败')
+    ElMessage.error(error.response?.data?.detail || '重置失败')
   }
 }
 

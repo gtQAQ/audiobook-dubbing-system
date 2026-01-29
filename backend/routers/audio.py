@@ -49,7 +49,7 @@ async def upload_text(file: UploadFile = File(...), current_user: models.User = 
     支持 .txt 格式，自动尝试 UTF-8 和 GBK 编码解码。
     """
     if not file.filename.endswith(".txt"):
-        raise HTTPException(status_code=400, detail="Only .txt files are allowed")
+        raise HTTPException(status_code=400, detail="仅支持 .txt 文件")
     
     content = await file.read()
     # 优先按 utf-8 解码，失败则回退到 gbk
@@ -59,7 +59,7 @@ async def upload_text(file: UploadFile = File(...), current_user: models.User = 
         try:
             text = content.decode("gbk")
         except:
-            raise HTTPException(status_code=400, detail="Could not decode file")
+            raise HTTPException(status_code=400, detail="文件解码失败")
             
     return {"filename": file.filename, "content": text}
 
@@ -71,7 +71,7 @@ async def synthesize(text: str = Form(...), emo_type: int = Form(...), current_u
     # 调用 TTS 服务
     audio_path = tts_service.synthesize_audio(text, emo_type)
     if not audio_path:
-        raise HTTPException(status_code=500, detail="TTS synthesis failed")
+        raise HTTPException(status_code=500, detail="语音合成服务失败")
     
     return {"audio_path": audio_path}
 
@@ -84,12 +84,12 @@ async def save_audio(emo_type: int = Form(...), audio_path: str = Form(...), db:
     src_abs_path = resolve_output_path_to_abs_path(audio_path)
     
     if not os.path.exists(src_abs_path):
-         raise HTTPException(status_code=404, detail="Audio file not found")
+         raise HTTPException(status_code=404, detail="音频文件未找到")
 
     temp_dir_abs = os.path.abspath(TEMP_DIR)
     if os.path.commonpath([src_abs_path, temp_dir_abs]) != temp_dir_abs:
         # 限制只能保存临时目录下的音频，避免路径穿越导致任意文件被复制到公开目录
-        raise HTTPException(status_code=400, detail="Invalid audio path")
+        raise HTTPException(status_code=400, detail="非法的音频路径")
     
     # 2. 定义目标路径 (数据文件)
     filename = os.path.basename(src_abs_path)
@@ -99,7 +99,7 @@ async def save_audio(emo_type: int = Form(...), audio_path: str = Form(...), db:
     try:
         shutil.copy(src_abs_path, dst_abs_path)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save audio file: {e}")
+        raise HTTPException(status_code=500, detail=f"保存音频文件失败: {e}")
         
     db_audio = models.Audio(
         user_id=current_user.id,
@@ -125,9 +125,9 @@ async def delete_audio(audio_id: int, db: Session = Depends(database.get_db), cu
     """
     audio = db.query(models.Audio).filter(models.Audio.id == audio_id).first()
     if not audio:
-        raise HTTPException(status_code=404, detail="Audio not found")
+        raise HTTPException(status_code=404, detail="音频记录不存在")
     if audio.user_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=403, detail="权限不足")
     
     audio_abs_path = resolve_output_path_to_abs_path(audio.audio_path)
     output_dir_abs = os.path.abspath(OUTPUT_DIR)
@@ -143,4 +143,4 @@ async def delete_audio(audio_id: int, db: Session = Depends(database.get_db), cu
             
     db.delete(audio)
     db.commit()
-    return {"message": "Audio deleted"}
+    return {"message": "音频已删除"}

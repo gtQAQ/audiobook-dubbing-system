@@ -76,7 +76,7 @@ import axios from 'axios'
 
 const route = useRoute()
 const router = useRouter()
-const nickname = ref('User')
+const nickname = ref('用户')
 const isAdmin = ref(false)
 
 const activeMenu = computed(() => route.path)

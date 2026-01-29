@@ -12,10 +12,10 @@
           <el-form :model="form" label-width="80px">
             <el-form-item label="情感">
               <el-select v-model="form.emo_type" placeholder="请选择情感" style="width: 100%">
-                <el-option label="喜 (Happy)" :value="0" />
-                <el-option label="怒 (Angry)" :value="1" />
-                <el-option label="哀 (Sad)" :value="2" />
-                <el-option label="惧 (Fear)" :value="3" />
+                <el-option label="喜" :value="0" />
+                <el-option label="怒" :value="1" />
+                <el-option label="哀" :value="2" />
+                <el-option label="惧" :value="3" />
               </el-select>
             </el-form-item>
             
@@ -135,7 +135,7 @@ const saveAudio = async () => {
     ElMessage.success('保存成功')
     router.push('/history')
   } catch (error) {
-    ElMessage.error('保存失败')
+    ElMessage.error(error.response?.data?.detail || '保存失败')
   } finally {
     saving.value = false
   }
@@ -145,7 +145,20 @@ const downloadAudio = () => {
   // 下载合成的音频文件到本地。
   const link = document.createElement('a')
   link.href = audioUrl.value
-  link.download = `synthesized_audio_${Date.now()}.wav`
+  
+  // 格式化当前时间为 YYYYMMDDHHmmss
+  const now = new Date()
+  const timestamp = now.getFullYear() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0') +
+    String(now.getHours()).padStart(2, '0') +
+    String(now.getMinutes()).padStart(2, '0') +
+    String(now.getSeconds()).padStart(2, '0')
+
+  const emoMap = { 0: '喜', 1: '怒', 2: '哀', 3: '惧' }
+  const emoLabel = emoMap[form.emo_type] || '未知'
+  
+  link.download = `试听_${emoLabel}_${timestamp}.wav`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

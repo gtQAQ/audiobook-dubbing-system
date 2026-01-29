@@ -80,7 +80,7 @@ const fetchData = async () => {
     })
     tableData.value = res.data
   } catch (error) {
-    ElMessage.error('获取列表失败')
+    ElMessage.error(error.response?.data?.detail || '获取列表失败')
   } finally {
     loading.value = false
   }
@@ -96,7 +96,7 @@ const handleDelete = async (row) => {
     ElMessage.success('删除成功')
     fetchData()
   } catch (error) {
-    ElMessage.error('删除失败')
+    ElMessage.error(error.response?.data?.detail || '删除失败')
   }
 }
 
@@ -104,7 +104,19 @@ const download = (row) => {
   // 触发音频文件的浏览器下载。
   const link = document.createElement('a')
   link.href = row.audio_path
-  link.download = `audio_${row.id}.wav`
+  
+  // 格式化当前时间为 YYYYMMDDHHmmss
+  const now = new Date()
+  const timestamp = now.getFullYear() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0') +
+    String(now.getHours()).padStart(2, '0') +
+    String(now.getMinutes()).padStart(2, '0') +
+    String(now.getSeconds()).padStart(2, '0')
+    
+  const emoLabel = getEmoLabel(row.emo_type)
+  link.download = `保存_${emoLabel}_${timestamp}.wav`
+  
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
